@@ -230,8 +230,7 @@ def logout():
     session.clear()
     return redirect(url_for('login'))
 
-
-# ✅ Add here:
+# ✅ Delete User
 @app.route('/admin/delete_user/<int:user_id>', methods=['POST'])
 def delete_user(user_id):
     if session.get('email') != 'admin@example.com':
@@ -241,7 +240,7 @@ def delete_user(user_id):
         conn.commit()
     return redirect(url_for('admin_dashboard'))
 
-
+# ✅ Delete Book
 @app.route('/admin/delete_book/<int:book_id>', methods=['POST'])
 def delete_book(book_id):
     if session.get('email') != 'admin@example.com':
@@ -251,6 +250,45 @@ def delete_book(book_id):
         conn.commit()
     return redirect(url_for('admin_dashboard'))
 
+# ✅ Add User
+@app.route('/admin/add_user', methods=['POST'])
+def add_user():
+    if session.get('email') != 'admin@example.com':
+        return redirect(url_for('login'))
+    email = request.form['email']
+    password = request.form['password']
+    with get_db() as conn:
+        try:
+            conn.execute('INSERT INTO users (email, password) VALUES (?, ?)', (email, password))
+            conn.commit()
+        except sqlite3.IntegrityError:
+            pass  # Optional: handle duplicate email error
+    return redirect(url_for('admin_dashboard'))
 
+# ✅ Add Book
+@app.route('/admin/add_book', methods=['POST'])
+def add_book_admin():
+    if session.get('email') != 'admin@example.com':
+        return redirect(url_for('login'))
+
+    title = request.form['title']
+    author = request.form['author']
+    genre = request.form['genre']
+    email = request.form['email']
+    description = request.form.get('description', '')
+
+    with get_db() as conn:
+        c = conn.cursor()
+        c.execute('SELECT id FROM users WHERE email = ?', (email,))
+        user = c.fetchone()
+        if user:
+            user_id = user['id']
+            c.execute('''INSERT INTO books (title, author, genre, description, user_id, email)
+                         VALUES (?, ?, ?, ?, ?, ?)''',
+                      (title, author, genre, description, user_id, email))
+            conn.commit()
+    return redirect(url_for('admin_dashboard'))
+
+# ✅ Final Run
 if __name__ == '__main__':
     app.run(debug=True)
